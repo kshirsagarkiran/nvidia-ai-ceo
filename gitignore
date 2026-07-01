@@ -1,0 +1,48 @@
+# ===== Data (too large / generated at runtime) =====
+data/raw/documents.jsonl
+data/chroma/
+data/results/analysis.json
+data/memory/episodes.jsonl
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.eggs
+.eggs/
+*.so
+
+# ===== Virtual environments =====
+venv/
+env/
+.venv/
+.env/
+
+# ===== IDE / editor =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== Streamlit =====
+.streamlit/
+
+# ===== Models (downloaded at runtime) =====
+models/
+*.bin
+*.safetensors
+
+# ===== Jupyter =====
+.ipynb_checkpoints/
+
+# ===== Misc =====
+*.log
+*.tmp

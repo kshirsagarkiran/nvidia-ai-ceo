@@ -1,0 +1,25 @@
+# Data collection
+feedparser>=6.0
+requests>=2.31
+beautifulsoup4>=4.12
+python-dateutil>=2.8
+trafilatura>=1.8
+tqdm>=4.66
+
+# Indexing + hybrid retrieval
+sentence-transformers>=3.0
+chromadb>=0.5
+rank-bm25>=0.2
+numpy>=1.26
+
+# Reasoning layer (local LLM)
+ollama>=0.3
+
+# Entailment verifier (BART-MNLI)
+transformers>=4.40
+torch>=2.2
+
+# Sentiment + dashboard
+vaderSentiment>=3.3
+streamlit>=1.36
+pandas>=2.0
