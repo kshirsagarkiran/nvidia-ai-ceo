@@ -16,6 +16,39 @@ locally via Ollama.
 > shared working-memory state, recording every decision to a visible trace, and
 > conditioning each run on episodic memory of the runs before it.
 
+## 🛡️ Alignment Relevance: Faithfulness Enforcement
+
+This system implements a **grounding verification mechanism** that addresses one of the
+core problems in autonomous AI: the gap between *plausible-sounding* and
+*evidence-supported* outputs.
+
+**The problem this solves.** In early versions of this pipeline, a substantial fraction of
+generated claims (~30%) were not supported by the retrieved source documents — fluent,
+confident outputs with no evidentiary basis, produced by a system positioning itself as a
+decision-support tool. The model was not "lying" in any anthropomorphic sense, but its
+outputs were unfaithful to its evidence base in ways that were invisible without external
+checking.
+
+**The mechanism (two independent gates):**
+
+- **Findings gate:** every analyst claim must cite retrieved chunks; uncited claims are
+  discarded. Cited claims are checked with **NLI-based entailment verification**
+  (`facebook/bart-large-mnli`) — does the cited evidence actually *entail* the claim?
+- **Composite confidence:** `confidence = 0.6 × entailment + 0.4 × cross-source
+  corroboration` — semantic support blended with independent-source agreement, so a claim
+  restated by one source scores lower than one corroborated by three.
+- **Recommendations gate:** advice is *separately* validated against the findings it cites;
+  **unsupported recommendations are dropped before display** and never reach the user.
+- **Auditability:** every agent decision is logged with its reason to a visible decision
+  trace — the run is inspectable end-to-end.
+
+**Why this matters for alignment.** This is an *external* verification layer — the model
+itself doesn't internally represent whether its outputs are grounded; it is caught when
+they aren't. The natural research extension is internalizing this: can models learn robust
+internal representations of "grounded vs. ungrounded" that generalize across domains? Can
+representation-level probes serve as **real-time faithfulness monitors** rather than
+post-hoc text checks? (See [Open Research Questions](#-open-research-questions) below.)
+
 ## What it does
 
 - **Plans before acting.** A planner agent reads the goal (and memory of past runs) and
@@ -178,6 +211,10 @@ the LLM live via Ollama for interactive Q&A, grounded in the same knowledge base
   instruction-following and structured JSON output, which the citation-bound design
   demands. Apache-2.0; runs in ~5 GB at 4-bit on a 16 GB M4. Ollama is the transport,
   swappable for Llama 3.1 / Mistral / Phi-4 without touching agent logic.
+- **Faithfulness on small models.** The entire verification stack runs against a local 8B
+  model with no API costs — evidence that grounding enforcement does not require
+  frontier-scale models, and that **external verification can hold smaller models to a
+  faithfulness standard they cannot self-enforce**.
 - **Hybrid retrieval.** BM25 nails exact terms (tickers, "H20", "Blackwell"); dense catches
   paraphrase ("GPU shortage" ~ "supply constraints"). Fusing both is the modern
   production-RAG pattern.
@@ -281,3 +318,24 @@ Notes:
 | `NEAR_DUPLICATE_THRESHOLD` | 0.92 | document-level near-duplicate cutoff |
 | `VALIDATION_THRESHOLD` | 0.5 | min support confidence for a recommendation to be "validated" |
 | `MAX_AGENT_ITERATIONS` | 2 | max planning passes; re-plans only if a pass validates zero recommendations |
+
+## 🔬 Open Research Questions
+
+Building this system surfaced questions I'm actively interested in exploring — they sit at
+the intersection of grounding verification, interpretability, and agent trustworthiness:
+
+1. **Internalization.** The NLI verification gate is external — the model is caught being
+   unfaithful rather than knowing it. Can models learn robust *internal* representations
+   of "grounded vs. ungrounded" that generalize across domains, replacing the post-hoc
+   filter with a structural property?
+2. **Probe-based faithfulness monitoring.** Could adapter probes trained on model
+   internals serve as **real-time faithfulness monitors** — verifying that a model's
+   stated reasoning matches its actual computation, at the representation level rather
+   than the text level?
+3. **Scaling behavior of unfaithful fluency.** Does the rate of unfaithful-but-fluent
+   outputs increase with model capability — and does external verification keep pace, or
+   does more convincing hallucination eventually defeat text-level entailment checking?
+4. **Verification vs. performance trade-offs.** This system drops unsupported outputs
+   entirely. What is the right frontier between faithfulness enforcement and task
+   usefulness, and can that trade-off be learned per-domain rather than hand-tuned
+   (`VALIDATION_THRESHOLD`)?
